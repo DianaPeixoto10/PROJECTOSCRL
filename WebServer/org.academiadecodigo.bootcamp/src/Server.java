@@ -1,12 +1,7 @@
-import com.sun.net.httpserver.Headers;
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
-import sun.jvm.hotspot.memory.HeapBlock;
-
+import javax.lang.model.element.NestingKind;
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URL;
 
 /**
  * Created by codecadet on 19/06/2018.
@@ -14,16 +9,19 @@ import java.net.URL;
 public class Server {
 
     FileInputStream fileInputStream = null;
-    FileInputStream index;
+    File file;
     BufferedReader in;
     Socket socket;
     ServerSocket serverSocket;
     DataOutputStream out;
     int port = 5000;
-    int readFile;
     byte[] bytes;
     int numbers;
 
+    public static void main(String[] args) {
+        Server server = new Server();
+        server.start();
+    }
 
     public void start() {
 
@@ -35,10 +33,21 @@ public class Server {
             while (true) {
                 socket = serverSocket.accept();
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                System.out.println(in.readLine());
 
-                headerGenerator();
-                readFile("rsc/index.html");
+                String request = in.readLine();
+                System.out.println(request);
+
+                String[] requestSplitted = request.split(" ");
+
+
+                if (requestSplitted[1].equals("/")) {
+                    file = new File("org.academiadecodigo.bootcamp/rsc/index.html");
+                } else {
+                    file = new File("org.academiadecodigo.bootcamp/rsc/" + requestSplitted[1]);
+                }
+
+                headerGenerator(file);
+                readFile(file);
 
             }
         } catch (IOException ex) {
@@ -46,33 +55,42 @@ public class Server {
         }
     }
 
-    public void headerGenerator() {
+    public void headerGenerator(File file) {
 
         String statusCode = statusCode();
-        String fileType = fileType();
-        int size = size();
 
         try {
             out = new DataOutputStream(socket.getOutputStream());
-            out.writeBytes("HTTP/1.0" + statusCode
-                    + "Document Follows" + "\r\n"
-                    + "Content-Type: " + fileType
-                    + "; charset=UTF-8\r\n" + "Content-Length: "
-                    + size + "\r\n\r\n");
+            if (file.getName().endsWith(".jpg")) {
+                out.writeBytes("HTTP/1.0" + statusCode
+                        + "Document follows" + "\r\n"
+                        + "Content-Type: image/jpg"
+                        + "; charset=UTF-8\r\n" +
+                        "Content-Length: " + file.length()
+                        + "\r\n\r\n");
+
+            } else if (file.getName().endsWith(".html")) {
+                out.writeBytes("HTTP/1.0" + statusCode
+                        + "Document Follows" + "\r\n"
+                        + "Content-Type: text/html;"
+                        + "charset=UTF-8\r\n"
+                        + "Content-Length: " + file.length()
+                        + "\r\n\r\n");
+            }
 
         } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    public void readFile(String file) {
+    public void readFile(File file) {
         try {
             fileInputStream = new FileInputStream(file);
+            bytes = new byte[1024];
+
             while (numbers != -1) {
-                readFile = fileInputStream.read();
-                bytes = new byte[1024];
                 numbers = fileInputStream.read(bytes);
-                out.write(numbers);
+                out.write(bytes);
             }
 
         } catch (FileNotFoundException fileNotFound) {
@@ -83,15 +101,7 @@ public class Server {
     }
 
     public String statusCode() {
-        return "hi";
-    }
-
-    public String fileType() {
-        return "bye";
-    }
-
-    public int size() {
-        return 0;
+        return "200";
     }
 
 }
